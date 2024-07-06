@@ -1,0 +1,49 @@
+version: '3.8'
+
+volumes:
+  Postgres-Data:
+    name: Postgres-Data
+
+services:
+  postgres:
+    image: postgres:latest
+    container_name: pierreau.postgres
+    hostname: postgres
+    restart: always
+    # ports:
+      # - "5432:5432"
+    environment:
+      - POSTGRES_USER=PostgresUser
+      - POSTGRES_PASSWORD=PostgresPWD
+      - POSTGRES_DB=PostgresDBname
+      - TZ=Europe/Paris
+    volumes:
+      - Postgres-Data:/var/lib/postgresql/data
+      # - /etc/localtime:/etc/localtime:ro
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: pierreau.pgadmin
+    depends_on:
+      - postgres
+    restart: on-failure
+    ports:
+      - "55320:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: user@pierreau.fr
+      PGADMIN_DEFAULT_PASSWORD: SuperSecret
+
+  adminer:
+    image: adminer:latest
+    container_name: pierreau.adminer
+    depends_on:
+      - postgres
+    restart: on-failure
+    environment:
+      ADMINER_DEFAULT_DB_DRIVER: postgresql
+      ADMINER_DEFAULT_SERVER: pierreau.postgres
+      ADMINER_DEFAULT_DB_NAME: PostgresDBname
+      ADMINER_PLUGINS: dump-zip dump-bz2 dump-date
+      ADMINER_DESIGN: galkaev # nette
+    ports:
+      - "55321:8080"
