@@ -1,0 +1,69 @@
+# Only the instructions RUN, COPY, ADD create layers
+
+# Reference image
+ FROM ubuntu:latest
+
+# Meta data (OCI standard)
+  LABEL org.opencontainers.image.title="My image"
+  LABEL org.opencontainers.image.description="My description"
+  LABEL org.opencontainers.image.authors="Pierre ROYER <mail@pierreau.fr>"
+  LABEL org.opencontainers.image.url="https://pierreau.fr/pro/"
+  LABEL org.opencontainers.image.version="2"
+  LABEL org.opencontainers.image.revision="1"
+  LABEL org.opencontainers.image.created="2016-11-28T15:00:00+02:00" # UTC+2 (rfc3339)
+  LABEL maintainer="Pierre ROYER <mail@pierreau.fr>"
+# Meta data (not standard)
+  LABEL Environment="production" \
+        Site="Nantes"
+
+# Installing packages without interruption (Debian)
+  ARG DEBIAN_FRONTEND=noninteractive
+
+# Commands executed during image creation
+  RUN apt-get update && apt upgrade -y
+  RUN apt install apache2 \
+                  cron \
+                  curl \
+                  openssh-server \
+                  tzdata \
+                  vim \
+                  wget -y
+
+# Time zone
+  ENV TZ=Europe/Paris
+  RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+  RUN dpkg-reconfigure --frontend noninteractive tzdata
+
+# Apache configuration
+  RUN  echo 'ServerName apache.pierreau.fr:80' >> /etc/apache2/apache2.conf
+
+# Copying files from host to container
+#  COPY index.html /var/www/html/
+#  RUN  cd /var/www/html/
+#  RUN  mv index.html index.html.old
+#  RUN  wget https://cloud.pierreau.fr/index.html
+
+# Allows adding archives or URLs
+  ADD https://cloud.pierreau.fr/index.html .
+
+# Mount points created in container
+  VOLUME   ["/var/www/html", "/etc/apache2", "/var/log/apache2/"]
+
+# ENTRYPOINT command (not overridable by docker run) launched at container startup
+# COPY  docker-entrypoint.sh /root/
+# RUN   chmod 700 /root/docker-entrypoint.sh
+# ENTRYPOINT ["/root/docker-entrypoint.sh"]
+
+# Command (overloadable by docker run) launched when the container starts
+  CMD ["/usr/sbin/apachectl", "-D", "FOREGROUND"]
+
+# Adding a user
+  RUN useradd -m -s /bin/bash -p M0t2P@$$ sshuser
+  USER  sshuser
+# Specifies default directory
+  WORKDIR /home/sshuser
+  RUN  echo "df -h" > .profile
+  USER  root
+
+# For information purposes, specifies the ports/protocols used
+  EXPOSE 80 22/tcp 123/udp
